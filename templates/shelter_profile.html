@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RescueOps — Edit Profile</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  .inp{width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;outline:none;transition:all .2s;}
+  .inp:focus{border-color:#ef4444;background:white;}
+  .lbl{display:block;font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+  #edit-map{height:260px;border-radius:14px;z-index:0;}
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+<header class="bg-white border-b border-gray-200 shadow-sm">
+  <div class="max-w-4xl mx-auto px-5 py-3 flex justify-between items-center">
+    <a href="/shelter/dashboard" class="flex items-center gap-2 text-gray-600 hover:text-red-600 font-bold transition">
+      <i class="fas fa-arrow-left mr-1"></i>Back to Dashboard
+    </a>
+    <span class="font-black text-base">RESCUE<span class="text-red-600">OPS</span> — Edit Profile</span>
+    <a href="/logout" class="text-xs font-black text-red-500 hover:text-white hover:bg-red-600 px-3 py-1.5 rounded-xl transition"><i class="fas fa-power-off mr-1"></i>Logout</a>
+  </div>
+</header>
+
+<div class="max-w-4xl mx-auto px-5 py-8">
+  <div id="msg" class="hidden p-4 rounded-2xl font-semibold text-sm mb-5 text-center"></div>
+  <div class="bg-white rounded-3xl shadow-lg border border-gray-200 p-8">
+    <h2 class="text-2xl font-black text-gray-900 mb-6"><i class="fas fa-user-pen text-red-600 mr-2"></i>Update Your Shelter Profile</h2>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div class="space-y-4">
+        <div><label class="lbl">Shelter Name</label><input id="p_name" type="text" class="inp" value="{{ shelter.name }}"></div>
+        <div><label class="lbl">Category</label>
+          <select id="p_cat" class="inp">
+            {% for cat in ['Hospital','Field Clinic','Maternity Center','Shelter Camp','Community Hall','School Shelter','Marriage Hall','Orphanage','Old Age Home','Disability Center','Rescue Team','NDRF Camp','Police Camp','Army Camp','Fire Station','Distribution Center','General'] %}
+            <option value="{{ cat }}" {% if shelter.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div><label class="lbl">State</label>
+          <select id="p_state" class="inp" onchange="loadDist()">
+            <option value="">-- Select State --</option>
+            {% for s in states %}<option value="{{ s }}" {% if shelter.state == s %}selected{% endif %}>{{ s }}</option>{% endfor %}
+          </select>
+        </div>
+        <div><label class="lbl">District</label>
+          <select id="p_district" class="inp">
+            <option value="{{ shelter.district }}">{{ shelter.district }}</option>
+          </select>
+        </div>
+        <div><label class="lbl">Village / Area</label><input id="p_village" type="text" class="inp" value="{{ shelter.village or '' }}" placeholder="e.g. Anna Nagar"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="lbl">Email</label><input id="p_email" type="email" class="inp" value="{{ shelter.email or '' }}"></div>
+          <div><label class="lbl">Phone</label><input id="p_phone" type="tel" class="inp" value="{{ shelter.phone or '' }}"></div>
+        </div>
+        <div><label class="lbl">Capacity (people)</label><input id="p_cap" type="number" class="inp" value="{{ shelter.capacity or 0 }}" min="0"></div>
+      </div>
+      <div>
+        <label class="lbl">GPS Location</label>
+        <div class="flex gap-2 mb-2">
+          <input id="p_loc" type="text" class="inp" value="{{ shelter.location or '' }}" placeholder="lat, lng">
+          <button onclick="getGPS()" class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl text-sm font-bold transition"><i class="fas fa-location-crosshairs"></i></button>
+        </div>
+        <div id="edit-map" class="mb-4"></div>
+        <button onclick="saveProfile()" id="save-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-black text-base py-3 rounded-2xl transition shadow-lg">
+          <i class="fas fa-save mr-2"></i>Save Profile Changes
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const LOCS = {{ locations_json|safe }};
+let map, marker;
+window.addEventListener('load', () => {
+  const locVal = document.getElementById('p_loc').value;
+  let lat = 20.5937, lng = 78.9629, zoom = 4;
+  if (locVal && locVal.includes(',')) { const p = locVal.split(',').map(Number); if(!isNaN(p[0])){ lat=p[0]; lng=p[1]; zoom=13; } }
+  map = L.map('edit-map').setView([lat, lng], zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  if (zoom > 4) marker = L.marker([lat, lng]).addTo(map);
+  map.on('click', e => setM(e.latlng.lat, e.latlng.lng));
+  loadDist();
+});
+function setM(lat, lng) {
+  document.getElementById('p_loc').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  if (marker) marker.setLatLng([lat,lng]); else marker = L.marker([lat,lng]).addTo(map);
+  map.panTo([lat,lng]);
+}
+function getGPS() {
+  navigator.geolocation.getCurrentPosition(p => { setM(p.coords.latitude, p.coords.longitude); map.setZoom(15); });
+}
+function loadDist() {
+  const st = document.getElementById('p_state').value;
+  const sel = document.getElementById('p_district');
+  const cur = sel.options[0]?.value || '';
+  sel.innerHTML = '<option value="">-- Select District --</option>';
+  if (LOCS[st]) LOCS[st].forEach(d => { const o = document.createElement('option'); o.value=d; o.textContent=d; if(d===cur)o.selected=true; sel.appendChild(o); });
+}
+async function saveProfile() {
+  const btn = document.getElementById('save-btn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...'; btn.disabled = true;
+  const res = await fetch('/api/shelter/update_profile', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name: document.getElementById('p_name').value,
+      category: document.getElementById('p_cat').value,
+      state: document.getElementById('p_state').value,
+      district: document.getElementById('p_district').value,
+      village: document.getElementById('p_village').value,
+      email: document.getElementById('p_email').value,
+      phone: document.getElementById('p_phone').value,
+      capacity: document.getElementById('p_cap').value,
+      location: document.getElementById('p_loc').value,
+    })
+  });
+  const data = await res.json();
+  btn.innerHTML = '<i class="fas fa-save mr-2"></i>Save Profile Changes'; btn.disabled = false;
+  const el = document.getElementById('msg');
+  if (data.status === 'success') {
+    el.textContent = '✅ Profile updated successfully!';
+    el.className = 'p-4 rounded-2xl font-semibold text-sm mb-5 text-center bg-green-50 text-green-800 border border-green-200';
+  } else {
+    el.textContent = '❌ Error: ' + data.message;
+    el.className = 'p-4 rounded-2xl font-semibold text-sm mb-5 text-center bg-red-50 text-red-800 border border-red-200';
+  }
+  el.classList.remove('hidden');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+</script>
+</body>
+</html>

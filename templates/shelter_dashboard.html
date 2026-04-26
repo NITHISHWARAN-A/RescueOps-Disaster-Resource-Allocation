@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RescueOps — Shelter Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  .inp{width:100%;padding:10px 13px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;outline:none;transition:all .2s;}
+  .inp:focus{border-color:#ef4444;background:white;}
+  .lbl{display:block;font-size:10px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+  .tab-btn{padding:8px 16px;border-radius:10px;font-size:13px;font-weight:700;transition:all .2s;cursor:pointer;border:none;background:none;}
+  .tab-btn.active{background:#dc2626;color:white;box-shadow:0 4px 12px rgba(220,38,38,.3);}
+  .tab-btn:not(.active){color:#64748b;}
+  .tab-btn:not(.active):hover{background:#f1f5f9;}
+  .sec{font-size:11px;font-weight:900;color:#374151;text-transform:uppercase;letter-spacing:.07em;
+    display:flex;align-items:center;gap:7px;padding:10px 0;border-bottom:2px solid #f1f5f9;margin-bottom:13px;}
+  .t-card{border:2px solid #e2e8f0;border-radius:13px;padding:12px 8px;text-align:center;cursor:pointer;transition:all .2s;}
+  .t-card:hover{border-color:#ef4444;background:#fff5f5;}
+  .t-card.sel{border-color:#dc2626;background:#fef2f2;box-shadow:0 0 0 3px rgba(220,38,38,.12);}
+  .t-card .em{font-size:24px;display:block;margin-bottom:3px;}
+  .t-card .tn{font-size:10px;font-weight:800;color:#374151;}
+  .t-card .tc{font-size:9px;color:#94a3b8;margin-top:1px;}
+  .stk-bar{height:5px;border-radius:99px;background:#e5e7eb;}
+  .stk-fill{height:5px;border-radius:99px;transition:width .4s;}
+  .track-item{position:relative;padding-left:26px;margin-bottom:12px;}
+  .track-item::before{content:'';position:absolute;left:7px;top:18px;bottom:-12px;width:2px;background:#e2e8f0;}
+  .track-item:last-child::before{display:none;}
+  .track-dot{position:absolute;left:0;top:4px;width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
+  .toast{position:fixed;bottom:24px;right:24px;z-index:999;padding:12px 20px;border-radius:16px;
+    font-weight:700;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.2);
+    animation:slideUp .3s ease;color:white;}
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+
+<!-- HEADER -->
+<header class="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
+  <div class="max-w-6xl mx-auto px-5 py-3 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <i class="fas fa-shield-heart text-red-600 text-xl"></i>
+      <div>
+        <span class="font-black text-base">RESCUE<span class="text-red-600">OPS</span></span>
+        <span class="ml-2 text-xs text-gray-400 font-semibold">Shelter Portal</span>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <div class="text-right hidden sm:block">
+        <p class="font-black text-sm text-gray-800">{{ shelter.name }}</p>
+        <p class="text-xs text-gray-400">{{ shelter.category }} · {{ shelter.district }}, {{ shelter.state }}</p>
+      </div>
+      <a href="/shelter/profile" class="text-xs bg-blue-50 hover:bg-blue-100 text-blue-600 font-bold px-3 py-1.5 rounded-xl transition">
+        <i class="fas fa-user-pen mr-1"></i>Profile
+      </a>
+      <a href="/logout" class="text-xs font-black text-red-500 hover:text-white hover:bg-red-600 px-3 py-1.5 rounded-xl transition">
+        <i class="fas fa-power-off mr-1"></i>Logout
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="max-w-6xl mx-auto px-5 py-5">
+
+  <!-- KPI CARDS -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+    <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+      <p class="text-xs font-bold text-gray-400 uppercase mb-1">Total Requests</p>
+      <p class="text-3xl font-black text-gray-900" id="kpi-total">{{ my_requests|length }}</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 border border-green-200 shadow-sm">
+      <p class="text-xs font-bold text-green-400 uppercase mb-1">Dispatched</p>
+      <p class="text-3xl font-black text-green-600" id="kpi-dispatched">{{ my_requests|selectattr('status','equalto','Dispatched')|list|length }}</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 border border-amber-200 shadow-sm">
+      <p class="text-xs font-bold text-amber-400 uppercase mb-1">Pending</p>
+      <p class="text-3xl font-black text-amber-500" id="kpi-pending">{{ my_requests|selectattr('status','equalto','Pending')|list|length }}</p>
+    </div>
+    <div class="bg-white rounded-2xl p-4 border border-blue-200 shadow-sm">
+      <p class="text-xs font-bold text-blue-400 uppercase mb-1">
+        <span class="inline-flex items-center gap-1">
+          <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block"></span>Live Updates
+        </span>
+      </p>
+      <p class="text-3xl font-black text-blue-600" id="tracking-count">{{ tracking|length }}</p>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="flex flex-wrap gap-2 mb-5 bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
+    <button class="tab-btn active" onclick="switchTab('t-req',this)">
+      <i class="fas fa-file-medical mr-1"></i>New Request
+    </button>
+    <button class="tab-btn" onclick="switchTab('t-status',this)">
+      <i class="fas fa-list-check mr-1"></i>My Requests
+    </button>
+    <button class="tab-btn" onclick="switchTab('t-track',this)">
+      <i class="fas fa-satellite-dish mr-1"></i>Live Tracking
+      {% if tracking %}<span class="ml-1 bg-red-600 text-white text-[9px] px-1.5 py-0.5 rounded-full font-black">{{ tracking|length }}</span>{% endif %}
+    </button>
+    <button class="tab-btn" onclick="switchTab('t-stock',this)">
+      <i class="fas fa-warehouse mr-1"></i>Warehouse Stock
+    </button>
+  </div>
+
+  <!-- ═══ TAB: NEW REQUEST ═══ -->
+  <div id="t-req">
+    <div id="req-msg" class="hidden p-3 rounded-xl font-semibold text-sm mb-3"></div>
+
+    <!-- LIVE WEIGHT ESTIMATOR -->
+    <div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white rounded-2xl p-4 mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <div>
+          <p class="text-xs font-black uppercase tracking-widest text-gray-400">Live Weight Estimator</p>
+          <p class="text-lg font-black"><span id="live-weight">0.0</span> kg · <span id="live-items">0</span> items</p>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-gray-400">Transport Selected</p>
+          <p class="font-black text-yellow-400 text-sm" id="transport-capacity-display">— Select transport first</p>
+        </div>
+      </div>
+      <div class="h-3 bg-gray-700 rounded-full overflow-hidden">
+        <div id="weight-meter" class="h-3 bg-gradient-to-r from-green-500 via-yellow-400 to-red-500 rounded-full transition-all duration-500" style="width:0%"></div>
+      </div>
+      <p class="text-xs text-gray-400 mt-1" id="weight-advice">Select a transport mode and fill quantities to see estimated load.</p>
+    </div>
+
+    <!-- DISASTER & PRIORITY -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-triangle-exclamation text-red-600"></i>Disaster &amp; Priority</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div>
+          <label class="lbl">Disaster Type</label>
+          <select id="disaster_type" class="inp">
+            <option value="Flood">🌊 Flood</option>
+            <option value="Earthquake">🏚️ Earthquake</option>
+            <option value="Cyclone">🌀 Cyclone</option>
+            <option value="Tsunami">🌊 Tsunami</option>
+            <option value="Landslide">⛰️ Landslide</option>
+            <option value="Fire">🔥 Fire</option>
+            <option value="Pandemic">🦠 Pandemic</option>
+            <option value="Drought">☀️ Drought</option>
+            <option value="General" selected>⚠️ General</option>
+          </select>
+        </div>
+        <div>
+          <label class="lbl">Priority Level</label>
+          <select id="priority" class="inp">
+            <option value="Critical">● Critical — Life Threatening</option>
+            <option value="High">▲ High — Urgent Need</option>
+            <option value="Normal" selected>◆ Normal — Standard</option>
+            <option value="Low">▼ Low — Can Wait</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="lbl">Special Notes</label>
+          <input id="notes" type="text" class="inp" placeholder="e.g. Diabetic patients, road flooded, need insulin urgently">
+        </div>
+      </div>
+    </div>
+
+    <!-- TRANSPORT MODE -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-truck-fast text-blue-600"></i>Transport Mode
+        <span class="text-xs text-gray-400 font-normal normal-case">— How should aid reach your location?</span>
+      </div>
+      <div class="grid grid-cols-3 md:grid-cols-6 gap-2 mb-3">
+        <div class="t-card" onclick="selT('Lorry',5000,this)"><span class="em">🚛</span><div class="tn">Lorry</div><div class="tc">5000kg</div></div>
+        <div class="t-card" onclick="selT('Mini_Van',1500,this)"><span class="em">🚐</span><div class="tn">Mini Van</div><div class="tc">1500kg</div></div>
+        <div class="t-card" onclick="selT('Tractor',2000,this)"><span class="em">🚜</span><div class="tn">Tractor</div><div class="tc">2000kg</div></div>
+        <div class="t-card" onclick="selT('Ambulance',300,this)"><span class="em">🚑</span><div class="tn">Ambulance</div><div class="tc">300kg</div></div>
+        <div class="t-card" onclick="selT('Bullock_Cart',400,this)"><span class="em">🐄</span><div class="tn">Bullock Cart</div><div class="tc">400kg</div></div>
+        <div class="t-card" onclick="selT('Manual',150,this)"><span class="em">🧑</span><div class="tn">Manual</div><div class="tc">Set below</div></div>
+        <div class="t-card" onclick="selT('Boat',800,this)"><span class="em">⛵</span><div class="tn">Boat</div><div class="tc">800kg</div></div>
+        <div class="t-card" onclick="selT('Motorboat',300,this)"><span class="em">🚤</span><div class="tn">Motorboat</div><div class="tc">300kg</div></div>
+        <div class="t-card" onclick="selT('Helicopter',900,this)"><span class="em">🚁</span><div class="tn">Helicopter</div><div class="tc">900kg</div></div>
+        <div class="t-card" onclick="selT('Fixed_Wing',3000,this)"><span class="em">✈️</span><div class="tn">Fixed-Wing</div><div class="tc">3000kg</div></div>
+        <div class="t-card" onclick="selT('Drone',10,this)"><span class="em">🛸</span><div class="tn">Drone</div><div class="tc">10kg</div></div>
+      </div>
+      <div id="t-info" class="hidden bg-blue-50 border border-blue-200 rounded-xl p-3 text-sm text-blue-800 font-semibold mb-3"></div>
+
+      <!-- MANUAL MANPOWER CALCULATOR -->
+      <div id="manual-manpower-box" class="hidden bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+        <p class="text-xs font-black text-amber-800 uppercase mb-2">
+          <i class="fas fa-people-carry-box mr-1"></i>Manual Carry — Set Your Team Size
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-xs font-bold text-amber-700 mb-1 block">No. of People Available</label>
+            <input id="manual-people" type="number" min="1" value="1" class="inp" oninput="updateManualCapacity()">
+          </div>
+          <div>
+            <label class="text-xs font-bold text-amber-700 mb-1 block">kg Per Person (default 30kg)</label>
+            <input id="manual-kg-per-person" type="number" min="5" max="80" value="30" class="inp" oninput="updateManualCapacity()">
+          </div>
+        </div>
+        <div class="mt-2 text-sm font-black text-amber-900 bg-amber-100 rounded-lg p-2 text-center">
+          Team Capacity: <span id="manual-capacity-text">1 person x 30kg = 30kg total</span>
+        </div>
+        <p class="text-[10px] text-amber-600 mt-1">
+          <i class="fas fa-info-circle mr-1"></i>Typical: 20-40kg per person based on terrain and distance.
+        </p>
+      </div>
+
+      <div>
+        <label class="lbl">Access Notes</label>
+        <input id="transport_detail" type="text" class="inp" placeholder="e.g. Helipad near temple, boat dock at East gate, road blocked after km 12">
+      </div>
+    </div>
+
+    <!-- POPULATION -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-users text-blue-600"></i>Population Demographics
+        <span class="text-xs font-normal text-gray-400 normal-case">— Powers LP+Knapsack urgency scoring</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><label class="lbl">👨 Adult Men</label><input id="adults_male" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👩 Adult Women</label><input id="adults_female" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👦 Boys (under 14)</label><input id="children_boys" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👧 Girls (under 14)</label><input id="children_girls" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👴 Elderly Men (60+)</label><input id="elderly_male" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👵 Elderly Women (60+)</label><input id="elderly_female" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🤰 Pregnant Women</label><input id="pregnant_women" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">♿ Special Needs</label><input id="special_needs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+    </div>
+
+    <!-- FOOD -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-utensils text-orange-500"></i>Food Requirements</div>
+      <p class="text-xs font-bold text-gray-500 uppercase mb-2">Ready-to-Eat Meal Packs</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        <div><label class="lbl">🌅 Breakfast Packs<br><span class="font-normal normal-case text-gray-400">Idli/Dosa/Upma</span></label><input id="breakfast_packs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">☀️ Lunch Packs<br><span class="font-normal normal-case text-gray-400">Rice+Sambar/Curry</span></label><input id="lunch_packs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🌙 Dinner Packs<br><span class="font-normal normal-case text-gray-400">Chapati/Rice+Dal</span></label><input id="dinner_packs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🍪 Snack Packs<br><span class="font-normal normal-case text-gray-400">Biscuits/Fruits</span></label><input id="snack_packs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+      <p class="text-xs font-bold text-gray-500 uppercase mb-2">Raw Ingredients</p>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><label class="lbl">🍼 Baby Food (kg)</label><input id="baby_food_kg" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🌾 Rice (kg)</label><input id="rice_kg" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🌱 Dal/Lentils (kg)</label><input id="dal_kg" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🍶 Cooking Oil (L)</label><input id="cooking_oil_L" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+    </div>
+
+    <!-- WATER -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-droplet text-blue-500"></i>Water Requirements</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div><label class="lbl">💧 Water Bottles 500ml</label><input id="water_bottles_500ml" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🛢️ Water Cans 20L</label><input id="water_cans_20L" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">💊 Purification Tablets</label><input id="water_purify_tabs" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+    </div>
+
+    <!-- MEDICINE -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-kit-medical text-red-500"></i>Medical Supplies</div>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div><label class="lbl">🧰 First Aid Kits</label><input id="first_aid_kits" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">💊 Antibiotics (strips)</label><input id="antibiotics_strip" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🤒 Paracetamol (strips)</label><input id="paracetamol_strip" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🧂 ORS Packets</label><input id="ors_packets" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">💉 IV Fluid Bottles</label><input id="iv_fluid_bottles" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">🩼 Bandage Rolls</label><input id="bandage_rolls" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+    </div>
+
+    <!-- CLOTHING -->
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+      <div class="sec"><i class="fas fa-shirt text-purple-500"></i>Clothing — By Gender &amp; Age</div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div><label class="lbl">👔 Men's Shirts</label><input id="mens_shirts" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👖 Men's Pants/Lungi</label><input id="mens_pants" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👘 Women's Sarees</label><input id="womens_saree" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👗 Women's Churidar</label><input id="womens_churidar" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👦 Boys' Set</label><input id="boys_set" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👧 Girls' Set</label><input id="girls_set" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        <div><label class="lbl">👶 Infant Set (0-5 yrs)</label><input id="infant_set" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+      </div>
+    </div>
+
+    <!-- SHELTER + FUEL + TOOLS -->
+    <div class="grid md:grid-cols-3 gap-4 mb-4">
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="sec"><i class="fas fa-house-chimney text-green-600"></i>Shelter Materials</div>
+        <div class="space-y-2">
+          <div><label class="lbl">⛺ Family Tents</label><input id="family_tents" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🔷 Tarpaulin Sheets</label><input id="tarpaulin_sheets" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🛏️ Sleeping Mats</label><input id="sleeping_mats" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🧣 Blankets</label><input id="blankets" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="sec"><i class="fas fa-bolt text-yellow-500"></i>Fuel &amp; Power</div>
+        <div class="space-y-2">
+          <div><label class="lbl">⛽ Petrol (L)</label><input id="petrol_L" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🚛 Diesel (L)</label><input id="diesel_L" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🍳 LPG Cylinders</label><input id="lpg_cylinders" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🔌 Generators</label><input id="generators" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🔋 Battery Sets</label><input id="batteries_set" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🔆 Solar Lanterns</label><input id="solar_lanterns" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        </div>
+      </div>
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+        <div class="sec"><i class="fas fa-soap text-teal-500"></i>Sanitation &amp; Tools</div>
+        <div class="space-y-2">
+          <div><label class="lbl">🧼 Sanitation Kits</label><input id="sanitation_kits" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🧴 Toiletries Kits</label><input id="toiletries_kit" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">🔗 Rescue Ropes</label><input id="rescue_ropes" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+          <div><label class="lbl">⛏️ Shovels</label><input id="shovels" type="number" min="0" value="0" class="inp" oninput="updateWeight()"></div>
+        </div>
+      </div>
+    </div>
+
+    <button onclick="submitRequest()" class="w-full bg-red-600 hover:bg-red-700 text-white font-black text-lg py-4 rounded-2xl transition shadow-lg">
+      <i class="fas fa-paper-plane mr-2"></i>Submit Relief Request (LP + Knapsack Optimization)
+    </button>
+  </div>
+
+  <!-- ═══ TAB: MY REQUESTS ═══ -->
+  <div id="t-status" class="hidden">
+    {% if my_requests %}
+      {% for req in my_requests %}
+      {% set d_icons = {'Flood':'🌊','Earthquake':'🏚️','Cyclone':'🌀','Tsunami':'🌊','Landslide':'⛰️','Fire':'🔥','Pandemic':'🦠','Drought':'☀️'} %}
+      <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-4">
+        <div class="flex flex-wrap justify-between items-start gap-3 mb-3">
+          <div>
+            <span class="text-xs text-gray-400 font-bold">Request #{{ req.id }}</span>
+            <p class="font-black text-gray-800 mt-0.5">
+              {{ d_icons.get(req.disaster_type, '⚠️') }} {{ req.disaster_type }} —
+              <span class="{% if req.priority=='Critical' %}text-red-600{% elif req.priority=='High' %}text-orange-500{% else %}text-blue-600{% endif %}">
+                {% if req.priority=='Critical' %}● Critical{% elif req.priority=='High' %}▲ High{% elif req.priority=='Normal' %}◆ Normal{% else %}▼ Low{% endif %}
+              </span>
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ req.created_at }} · {{ req.transport_mode|replace('_',' ') }}</p>
+          </div>
+          <span id="status-badge-{{ req.id }}" class="px-3 py-1 rounded-full text-xs font-black
+            {% if req.status=='Dispatched' %}bg-green-100 text-green-700
+            {% elif req.status=='Not Dispatched' %}bg-orange-100 text-orange-700
+            {% elif req.status=='Pending' %}bg-amber-100 text-amber-700
+            {% elif req.status=='Rejected' %}bg-red-100 text-red-700
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            <i class="fas {% if req.status=='Dispatched' %}fa-truck-fast{% elif req.status=='Not Dispatched' %}fa-warehouse{% elif req.status=='Pending' %}fa-clock{% elif req.status=='Rejected' %}fa-ban{% else %}fa-circle{% endif %} mr-1"></i>
+            {{ req.status }}
+          </span>
+        </div>
+        <div id="notes-block-{{ req.id }}" class="{% if not req.admin_notes %}hidden{% endif %}">
+          <div class="bg-gray-900 rounded-2xl p-4">
+            <p class="text-xs font-black text-gray-400 uppercase mb-2 flex items-center gap-2">
+              <i class="fas fa-microchip text-green-400"></i>LP + Knapsack Dispatch Result
+            </p>
+            <div class="notes-content text-xs text-gray-300 whitespace-pre-wrap font-mono leading-relaxed">{{ req.admin_notes }}</div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="text-center py-20 text-gray-400 bg-white rounded-2xl border border-gray-200">
+        <i class="fas fa-inbox text-6xl mb-4 opacity-30"></i>
+        <p class="font-bold">No requests yet. Use New Request tab.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- ═══ TAB: LIVE TRACKING ═══ -->
+  <div id="t-track" class="hidden">
+    <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-4 text-sm text-blue-800">
+      <i class="fas fa-satellite-dish mr-2 text-blue-500 animate-pulse"></i>
+      <strong>Live Updates</strong> — Auto-refreshes every 15 seconds. Updates appear here automatically.
+      <span class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-bold" id="last-refresh-time"></span>
+    </div>
+    <div id="tracking-list">
+      {% if tracking %}
+        {% for upd in tracking %}
+        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-3 track-item">
+          <div class="track-dot
+            {% if upd.update_type=='dispatched' %}bg-blue-600
+            {% elif upd.update_type=='departed' %}bg-orange-500
+            {% elif upd.update_type=='en_route' %}bg-yellow-500
+            {% elif upd.update_type=='checkpoint' %}bg-purple-500
+            {% elif upd.update_type in ['arrived','delivered'] %}bg-green-600
+            {% elif upd.update_type=='delay' %}bg-red-500
+            {% elif upd.update_type in ['email','sms'] %}bg-red-400
+            {% else %}bg-gray-400{% endif %}">
+            <i class="fas {% if upd.update_type=='dispatched' %}fa-box-open{% elif upd.update_type=='departed' %}fa-truck-fast{% elif upd.update_type=='en_route' %}fa-route{% elif upd.update_type=='checkpoint' %}fa-map-pin{% elif upd.update_type in ['arrived','delivered'] %}fa-check{% elif upd.update_type=='delay' %}fa-clock{% elif upd.update_type=='email' %}fa-envelope{% else %}fa-info{% endif %} text-white text-[8px]"></i>
+          </div>
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-black text-gray-800 text-sm">{{ upd.message }}</p>
+              {% if upd.location_tag %}<p class="text-xs text-blue-600 mt-0.5"><i class="fas fa-location-dot mr-1"></i>{{ upd.location_tag }}</p>{% endif %}
+            </div>
+            <div class="text-right text-xs text-gray-400 flex-shrink-0 ml-3">
+              <p>Req #{{ upd.request_id }}</p>
+              <p>{{ upd.created_at }}</p>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div class="text-center py-16 text-gray-400 bg-white rounded-2xl border border-gray-200">
+          <i class="fas fa-satellite-dish text-5xl mb-4 opacity-30"></i>
+          <p class="font-bold">No tracking updates yet.</p>
+          <p class="text-sm mt-1">Once your request is processed, live updates appear here automatically.</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ═══ TAB: WAREHOUSE STOCK ═══ -->
+  <div id="t-stock" class="hidden">
+    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 text-sm text-blue-800">
+      <i class="fas fa-circle-info mr-2"></i>Live warehouse stock. <span class="text-red-600 font-bold">Red = out of stock</span>, <span class="text-orange-500 font-bold">orange = low stock</span>.
+    </div>
+    {% set categories = inventory | map(attribute='category') | unique | list %}
+    {% for cat in categories %}
+    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 mb-3">
+      <h3 class="text-sm font-black text-gray-700 mb-3 uppercase">{{ cat }}</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+        {% for item in inventory if item.category == cat %}
+        {% set avail = item.total_stock - item.allocated %}
+        {% set pct = (avail / item.total_stock * 100) if item.total_stock > 0 else 0 %}
+        <div class="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
+          <div class="flex-1 min-w-0">
+            <div class="flex justify-between mb-1">
+              <p class="text-xs font-bold text-gray-700 truncate">{{ item.item_name }}</p>
+              <span class="text-xs font-black ml-2 flex-shrink-0 {% if avail==0 %}text-red-600{% elif pct<25 %}text-orange-500{% else %}text-green-700{% endif %}">
+                {{ avail }}/{{ item.total_stock }} {{ item.unit }}
+              </span>
+            </div>
+            <div class="stk-bar">
+              <div class="stk-fill {% if avail==0 %}bg-red-400{% elif pct<25 %}bg-orange-400{% else %}bg-green-500{% endif %}" style="width:{{ [pct,100]|min }}%"></div>
+            </div>
+          </div>
+          {% if avail==0 %}<span class="text-[10px] bg-red-100 text-red-600 font-black px-2 py-0.5 rounded-lg flex-shrink-0">OUT</span>
+          {% elif pct<25 %}<span class="text-[10px] bg-orange-100 text-orange-600 font-black px-2 py-0.5 rounded-lg flex-shrink-0">LOW</span>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+</div><!-- end main wrapper -->
+
+<script>
+// ══════════════════════════════════════════════════════
+// RESCUEOPS SHELTER DASHBOARD — COMPLETE CLEAN JS
+// ══════════════════════════════════════════════════════
+
+// ── ITEM WEIGHTS (matches app.py ITEM_CONFIG) ─────────
+var WEIGHTS = {
+  breakfast_packs:0.8, lunch_packs:1.2, dinner_packs:1.2, snack_packs:0.5,
+  baby_food_kg:1.0, rice_kg:1.0, dal_kg:1.0, cooking_oil_L:0.9,
+  water_bottles_500ml:0.5, water_cans_20L:20.0, water_purify_tabs:0.05,
+  first_aid_kits:2.0, antibiotics_strip:0.05, paracetamol_strip:0.05,
+  ors_packets:0.05, iv_fluid_bottles:0.6, bandage_rolls:0.15,
+  mens_shirts:0.3, mens_pants:0.5, womens_saree:0.6, womens_churidar:0.5,
+  boys_set:0.4, girls_set:0.4, infant_set:0.25,
+  family_tents:15.0, tarpaulin_sheets:2.5, sleeping_mats:1.2, blankets:0.8,
+  petrol_L:0.75, diesel_L:0.85, lpg_cylinders:15.0, generators:50.0,
+  batteries_set:1.5, solar_lanterns:0.4,
+  sanitation_kits:0.8, toiletries_kit:0.6, rescue_ropes:1.8, shovels:2.0
+};
+var FIELDS = Object.keys(WEIGHTS);
+
+var selTransport = '';
+var selCapacity  = 0;
+
+var TINFO = {
+  Lorry:'🚛 Lorry — Max 5,000kg. Best for large accessible roads.',
+  Mini_Van:'🚐 Mini Van — Max 1,500kg. Narrow roads and urban zones.',
+  Tractor:'🚜 Tractor — Max 2,000kg. Muddy rural terrain.',
+  Ambulance:'🚑 Ambulance — Max 300kg. Medical supply priority.',
+  Bullock_Cart:'🐄 Bullock Cart — Max 400kg. Remote rural roads without motor access.',
+  Manual:'🧑 Manual Carry — Enter team size below to calculate exact capacity.',
+  Boat:'⛵ Boat — Max 800kg. Flooded areas with water access.',
+  Motorboat:'🚤 Motorboat — Max 300kg. Fast delivery across flood waters.',
+  Helicopter:'🚁 Helicopter — Max 900kg. Areas completely cut off by land/water.',
+  Fixed_Wing:'✈️ Fixed-Wing — Max 3,000kg. Long-distance aerial delivery.',
+  Drone:'🛸 Drone — Max 10kg. Medicines to inaccessible micro-locations.'
+};
+
+// ── 1. TAB SWITCHING ──────────────────────────────────
+function switchTab(id, btn) {
+  var tabs = ['t-req','t-status','t-track','t-stock'];
+  for (var i=0; i<tabs.length; i++) {
+    var el = document.getElementById(tabs[i]);
+    if (el) el.classList.add('hidden');
+  }
+  var target = document.getElementById(id);
+  if (target) target.classList.remove('hidden');
+
+  var btns = document.querySelectorAll('.tab-btn');
+  for (var j=0; j<btns.length; j++) btns[j].classList.remove('active');
+  if (btn) btn.classList.add('active');
+}
+
+// ── 2. TRANSPORT SELECTION ────────────────────────────
+function selT(name, cap, el) {
+  selTransport = name;
+  selCapacity  = cap;
+
+  var cards = document.querySelectorAll('.t-card');
+  for (var i=0; i<cards.length; i++) cards[i].classList.remove('sel');
+  el.classList.add('sel');
+
+  var infoEl = document.getElementById('t-info');
+  if (infoEl) {
+    infoEl.textContent = TINFO[name] || name;
+    infoEl.classList.remove('hidden');
+  }
+
+  var manBox = document.getElementById('manual-manpower-box');
+  if (name === 'Manual') {
+    if (manBox) manBox.classList.remove('hidden');
+    updateManualCapacity();
+  } else {
+    if (manBox) manBox.classList.add('hidden');
+    var capDisp = document.getElementById('transport-capacity-display');
+    if (capDisp) capDisp.textContent = name.replace(/_/g,' ') + ' — Max ' + cap + 'kg';
+    updateWeight();
+  }
+}
+
+// ── 3. MANUAL MANPOWER CALC ───────────────────────────
+function updateManualCapacity() {
+  var pEl = document.getElementById('manual-people');
+  var kEl = document.getElementById('manual-kg-per-person');
+  var tEl = document.getElementById('manual-capacity-text');
+  var cEl = document.getElementById('transport-capacity-display');
+
+  var people  = parseInt(pEl ? pEl.value : 1) || 1;
+  var kgEach  = parseInt(kEl ? kEl.value : 30) || 30;
+  var totalKg = people * kgEach;
+  selCapacity = totalKg;
+
+  var label = people + ' person' + (people > 1 ? 's' : '') + ' x ' + kgEach + 'kg = ' + totalKg + 'kg total';
+  if (tEl) tEl.textContent = label;
+  if (cEl) cEl.textContent = 'Manual — ' + label;
+  updateWeight();
+}
+
+// ── 4. LIVE WEIGHT ESTIMATOR ──────────────────────────
+function updateWeight() {
+  var totalW = 0, totalItems = 0;
+  for (var i=0; i<FIELDS.length; i++) {
+    var f  = FIELDS[i];
+    var el = document.getElementById(f);
+    var v  = el ? (parseFloat(el.value) || 0) : 0;
+    totalW     += v * (WEIGHTS[f] || 0);
+    totalItems += v;
+  }
+
+  var lwEl = document.getElementById('live-weight');
+  var liEl = document.getElementById('live-items');
+  if (lwEl) lwEl.textContent = totalW.toFixed(1);
+  if (liEl) liEl.textContent = totalItems;
+
+  var meter  = document.getElementById('weight-meter');
+  var advice = document.getElementById('weight-advice');
+  if (!meter || !advice) return;
+
+  if (selCapacity > 0) {
+    var pct = Math.min((totalW / selCapacity) * 100, 100);
+    meter.style.width = pct + '%';
+    if (totalW > selCapacity) {
+      advice.textContent = '⚠️ OVER CAPACITY by ' + (totalW - selCapacity).toFixed(1) + 'kg! Reduce quantities or choose larger transport.';
+      advice.className = 'text-xs text-red-400 mt-1 font-bold';
+    } else if (pct > 80) {
+      advice.textContent = '✅ Good load (' + pct.toFixed(0) + '%) — ' + (selCapacity - totalW).toFixed(1) + 'kg remaining.';
+      advice.className = 'text-xs text-yellow-300 mt-1 font-bold';
+    } else {
+      advice.textContent = '✅ ' + pct.toFixed(0) + '% of capacity used. ' + (selCapacity - totalW).toFixed(1) + 'kg still available.';
+      advice.className = 'text-xs text-green-400 mt-1';
+    }
+  } else {
+    meter.style.width = '0%';
+    advice.textContent = 'Select a transport mode above to see capacity usage.';
+    advice.className = 'text-xs text-gray-400 mt-1';
+  }
+}
+
+// ── 5. SHOW MESSAGE ───────────────────────────────────
+function showMsg(msg, ok) {
+  var el = document.getElementById('req-msg');
+  if (!el) return;
+  el.textContent = msg;
+  el.className = 'p-3 rounded-xl font-semibold text-sm mb-3 ' + (ok
+    ? 'bg-green-50 text-green-800 border border-green-200'
+    : 'bg-red-50 text-red-800 border border-red-200');
+  el.classList.remove('hidden');
+  el.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+// ── 6. TOAST NOTIFICATION ─────────────────────────────
+function showToast(msg, color) {
+  var colors = { blue:'#2563eb', green:'#16a34a', red:'#dc2626', orange:'#ea580c' };
+  var t = document.createElement('div');
+  t.className = 'toast';
+  t.style.background = colors[color] || '#2563eb';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(function() { if (t.parentNode) t.parentNode.removeChild(t); }, 5000);
+}
+
+// ── 7. SUBMIT REQUEST ─────────────────────────────────
+function submitRequest() {
+  if (!selTransport) {
+    showMsg('⚠️ Please select a transport mode first.', false);
+    return;
+  }
+
+  var tDetail = '';
+  var tdEl = document.getElementById('transport_detail');
+  if (tdEl) tDetail = tdEl.value || '';
+
+  if (selTransport === 'Manual') {
+    var ppl = document.getElementById('manual-people');
+    var kgp = document.getElementById('manual-kg-per-person');
+    var pplV = ppl ? (ppl.value || 1) : 1;
+    var kgpV = kgp ? (kgp.value || 30) : 30;
+    tDetail = pplV + ' people x ' + kgpV + 'kg each = ' + selCapacity + 'kg. ' + tDetail;
+  }
+
+  var payload = {
+    disaster_type:    (document.getElementById('disaster_type') || {}).value || 'General',
+    priority:         (document.getElementById('priority')      || {}).value || 'Normal',
+    transport_mode:   selTransport,
+    transport_detail: tDetail.trim(),
+    notes:            (document.getElementById('notes')         || {}).value || '',
+    adults_male:    parseInt((document.getElementById('adults_male')    || {}).value)  || 0,
+    adults_female:  parseInt((document.getElementById('adults_female')  || {}).value)  || 0,
+    children_boys:  parseInt((document.getElementById('children_boys')  || {}).value)  || 0,
+    children_girls: parseInt((document.getElementById('children_girls') || {}).value)  || 0,
+    elderly_male:   parseInt((document.getElementById('elderly_male')   || {}).value)  || 0,
+    elderly_female: parseInt((document.getElementById('elderly_female') || {}).value)  || 0,
+    pregnant_women: parseInt((document.getElementById('pregnant_women') || {}).value)  || 0,
+    special_needs:  parseInt((document.getElementById('special_needs')  || {}).value)  || 0
+  };
+
+  for (var i=0; i<FIELDS.length; i++) {
+    var f = FIELDS[i];
+    var el = document.getElementById(f);
+    payload[f] = el ? (parseInt(el.value) || 0) : 0;
+  }
+
+  var total = 0;
+  for (var k in payload) { if (WEIGHTS[k] !== undefined) total += payload[k]; }
+  if (total === 0) {
+    showMsg('⚠️ Please enter at least one item quantity before submitting.', false);
+    return;
+  }
+
+  var totalW = 0;
+  for (var f2 in WEIGHTS) { totalW += (payload[f2] || 0) * WEIGHTS[f2]; }
+  if (totalW > selCapacity * 1.5) {
+    var ok = confirm('⚠️ Request (' + totalW.toFixed(0) + 'kg) exceeds ' + selTransport.replace(/_/g,' ') +
+      ' capacity (' + selCapacity + 'kg). LP optimizer will reduce quantities to fit. Continue?');
+    if (!ok) return;
+  }
+
+  var btn = document.querySelector('button[onclick="submitRequest()"]');
+  if (btn) { btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...'; btn.disabled = true; }
+
+  fetch('/api/submit_request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  })
+  .then(function(res) { return res.json(); })
+  .then(function(data) {
+    if (btn) {
+      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Relief Request (LP + Knapsack Optimization)';
+      btn.disabled = false;
+    }
+    if (data.status === 'success') {
+      showMsg('✅ Request submitted! Admin will process it shortly.', true);
+      for (var i=0; i<FIELDS.length; i++) {
+        var el2 = document.getElementById(FIELDS[i]);
+        if (el2) el2.value = 0;
+      }
+      updateWeight();
+      setTimeout(function() { location.reload(); }, 2500);
+    } else {
+      showMsg('❌ Error: ' + (data.error || data.message || 'Submission failed'), false);
+    }
+  })
+  .catch(function(e) {
+    if (btn) {
+      btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Submit Relief Request (LP + Knapsack Optimization)';
+      btn.disabled = false;
+    }
+    showMsg('❌ Network error: ' + e.message, false);
+  });
+}
+
+// ── 8. RENDER TRACKING ────────────────────────────────
+function renderTracking(updates) {
+  if (!updates || updates.length === 0) return;
+  var container = document.getElementById('tracking-list');
+  if (!container) return;
+
+  var typeColors = {
+    dispatched:'bg-blue-600', departed:'bg-orange-500', en_route:'bg-yellow-500',
+    checkpoint:'bg-purple-500', delay:'bg-red-500', arrived:'bg-green-600',
+    delivered:'bg-green-700', email:'bg-red-400', sms:'bg-pink-500', update:'bg-gray-400'
+  };
+  var typeIcons = {
+    dispatched:'fa-box-open', departed:'fa-truck-fast', en_route:'fa-route',
+    checkpoint:'fa-map-pin', delay:'fa-clock', arrived:'fa-check',
+    delivered:'fa-check-double', email:'fa-envelope', sms:'fa-comment', update:'fa-info'
+  };
+
+  var html = '';
+  for (var i=0; i<updates.length; i++) {
+    var upd   = updates[i];
+    var color = typeColors[upd.update_type] || 'bg-gray-400';
+    var icon  = typeIcons[upd.update_type]  || 'fa-info';
+    var loc   = upd.location_tag
+      ? '<p class="text-xs text-blue-600 mt-0.5"><i class="fas fa-location-dot mr-1"></i>' + upd.location_tag + '</p>'
+      : '';
+    html += '<div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-3 track-item">'
+      + '<div class="track-dot ' + color + '"><i class="fas ' + icon + ' text-white text-[8px]"></i></div>'
+      + '<div class="flex justify-between items-start">'
+      + '<div><p class="font-black text-gray-800 text-sm">' + upd.message + '</p>' + loc + '</div>'
+      + '<div class="text-right text-xs text-gray-400 flex-shrink-0 ml-3">'
+      + '<p>Req #' + upd.request_id + '</p><p>' + upd.created_at + '</p></div></div></div>';
+  }
+  container.innerHTML = html;
+}
+
+// ── 9. AUTO-REFRESH (safe — no crashes if elements missing) ──────────
+var lastTrackingId = 0;
+var lastReqCount   = 0;
+var lastDispCount  = 0;
+
+function pollForUpdates() {
+  fetch('/api/ping')
+  .then(function(res) {
+    if (!res.ok) return null;
+    return res.json();
+  })
+  .then(function(pdata) {
+    if (!pdata || pdata.status === 'logged_out') return;
+
+    var rtEl = document.getElementById('last-refresh-time');
+    if (rtEl) rtEl.textContent = 'Last checked: ' + new Date().toLocaleTimeString();
+
+    var newTrackId   = pdata.last_tracking_id || 0;
+    var newReqCount  = pdata.request_count    || 0;
+    var newDispCount = pdata.dispatched_count || 0;
+
+    if (newTrackId !== lastTrackingId || newDispCount !== lastDispCount || newReqCount !== lastReqCount) {
+      fetch('/api/shelter/latest_status')
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (!data) return;
+
+        var tcEl = document.getElementById('tracking-count');
+        var ktEl = document.getElementById('kpi-total');
+        var kdEl = document.getElementById('kpi-dispatched');
+        var kpEl = document.getElementById('kpi-pending');
+
+        if (tcEl) tcEl.textContent = data.tracking.length;
+        if (ktEl) ktEl.textContent = data.requests.length;
+        if (kdEl) kdEl.textContent = data.requests.filter(function(r){ return r.status==='Dispatched'; }).length;
+        if (kpEl) kpEl.textContent = data.requests.filter(function(r){ return r.status==='Pending'; }).length;
+
+        var trackTab = document.getElementById('t-track');
+        if (trackTab && !trackTab.classList.contains('hidden')) {
+          renderTracking(data.tracking);
+        }
+
+        for (var i=0; i<data.requests.length; i++) {
+          var req    = data.requests[i];
+          var badge  = document.getElementById('status-badge-' + req.id);
+          var nblock = document.getElementById('notes-block-' + req.id);
+
+          if (badge) {
+            var colorMap = {
+              'Dispatched':     'bg-green-100 text-green-700',
+              'Not Dispatched': 'bg-orange-100 text-orange-700',
+              'Pending':        'bg-amber-100 text-amber-700',
+              'Rejected':       'bg-red-100 text-red-700'
+            };
+            var iconMap = {
+              'Dispatched':     'fa-truck-fast',
+              'Not Dispatched': 'fa-warehouse',
+              'Pending':        'fa-clock',
+              'Rejected':       'fa-ban'
+            };
+            badge.className = 'px-3 py-1 rounded-full text-xs font-black ' + (colorMap[req.status] || 'bg-gray-100 text-gray-600');
+            badge.innerHTML = '<i class="fas ' + (iconMap[req.status] || 'fa-circle') + ' mr-1"></i>' + req.status;
+          }
+
+          if (nblock && req.admin_notes) {
+            nblock.classList.remove('hidden');
+            var nc = nblock.querySelector('.notes-content');
+            if (nc) nc.textContent = req.admin_notes;
+          }
+        }
+
+        if (newTrackId > lastTrackingId && lastTrackingId !== 0) showToast('📦 New update! Check Live Tracking tab.', 'blue');
+        if (newDispCount > lastDispCount && lastDispCount !== 0) showToast('✅ Your request has been dispatched!', 'green');
+
+        lastTrackingId = newTrackId;
+        lastReqCount   = newReqCount;
+        lastDispCount  = newDispCount;
+      })
+      .catch(function() {});
+    } else {
+      lastTrackingId = newTrackId;
+      lastReqCount   = newReqCount;
+      lastDispCount  = newDispCount;
+    }
+  })
+  .catch(function() {});
+}
+
+// Start polling safely after DOM is fully ready
+window.addEventListener('load', function() {
+  setTimeout(pollForUpdates, 3000);
+  setInterval(pollForUpdates, 15000);
+});
+</script>
+</body>
+</html>

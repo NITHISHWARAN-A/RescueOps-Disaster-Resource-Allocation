@@ -1,0 +1,5 @@
+flask
+pulp
+numpy
+werkzeug
+python-dotenv

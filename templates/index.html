@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RescueOps — Disaster Relief System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  .hero-bg{background:linear-gradient(135deg,rgba(0,0,0,0.78) 0%,rgba(153,27,27,0.6) 100%),
+    url('https://images.unsplash.com/photo-1469571486292-0ba58a3f068b?auto=format&fit=crop&w=1920&q=80') center/cover;}
+  .card{transition:transform .2s,box-shadow .2s;}
+  .card:hover{transform:translateY(-4px);box-shadow:0 20px 40px rgba(0,0,0,.12);}
+</style>
+</head>
+<body class="bg-slate-50 text-gray-900">
+
+<nav class="fixed w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-200 shadow-sm">
+  <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <a href="/" class="flex items-center gap-2">
+      <i class="fas fa-shield-heart text-red-600 text-2xl"></i>
+      <span class="font-black text-xl">RESCUE<span class="text-red-600">OPS</span></span>
+    </a>
+    <div class="flex gap-3">
+      <a href="/shelter/login" class="border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-bold px-5 py-2 rounded-xl text-sm transition">
+        <i class="fas fa-house-chimney mr-1"></i>Shelter Login
+      </a>
+      <a href="/admin/login" class="bg-gray-900 hover:bg-black text-white font-bold px-5 py-2 rounded-xl text-sm transition">
+        <i class="fas fa-user-shield mr-1"></i>Admin Login
+      </a>
+    </div>
+  </div>
+</nav>
+
+<section class="hero-bg min-h-screen flex items-center justify-center text-center text-white px-6 pt-20">
+  <div class="max-w-4xl">
+    <span class="inline-block bg-red-600 text-xs font-black px-4 py-1 rounded-full uppercase tracking-widest mb-6">
+      <i class="fas fa-circle text-green-300 mr-1 text-[8px] animate-pulse"></i>System Active
+    </span>
+    <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">Smart Disaster<br><span class="text-red-400">Relief Logistics</span></h1>
+    <p class="text-lg md:text-xl text-gray-200 mb-4 max-w-3xl mx-auto leading-relaxed">
+      Powered by <span class="text-yellow-300 font-black">Linear Programming (LP)</span> &amp;
+      <span class="text-green-300 font-black">Knapsack Algorithm</span> for optimal resource allocation.
+      Multi-modal transport — Land, Air &amp; Water.
+    </p>
+    <p class="text-sm text-gray-400 mb-10">LP optimizes transport routes &amp; supply flow. Knapsack selects optimal item combinations under capacity constraints.</p>
+    <div class="grid md:grid-cols-2 gap-6 max-w-2xl mx-auto">
+      <a href="/shelter/register" class="bg-white/10 hover:bg-white/20 border-2 border-white/40 hover:border-white text-white p-8 rounded-2xl transition backdrop-blur-sm card block">
+        <i class="fas fa-house-chimney text-4xl mb-4 text-red-300"></i>
+        <h3 class="text-xl font-black mb-2">Register Shelter</h3>
+        <p class="text-gray-300 text-sm mb-4">New shelter? Register your node to start requesting relief supplies.</p>
+        <span class="bg-red-600 text-white font-bold py-2 px-4 rounded-xl text-sm inline-block">Register Now →</span>
+      </a>
+      <a href="/shelter/login" class="bg-white/10 hover:bg-white/20 border-2 border-white/40 hover:border-white text-white p-8 rounded-2xl transition backdrop-blur-sm card block">
+        <i class="fas fa-right-to-bracket text-4xl mb-4 text-blue-300"></i>
+        <h3 class="text-xl font-black mb-2">Shelter Login</h3>
+        <p class="text-gray-300 text-sm mb-4">Already registered? Login to submit requests and track dispatches live.</p>
+        <span class="bg-blue-600 text-white font-bold py-2 px-4 rounded-xl text-sm inline-block">Login →</span>
+      </a>
+    </div>
+    <p class="mt-6 text-gray-400 text-sm">Admin? <a href="/admin/login" class="text-white underline font-bold">Access Command Center →</a></p>
+  </div>
+</section>
+
+<!-- ALGORITHM SECTION -->
+<section class="py-20 bg-white">
+  <div class="max-w-6xl mx-auto px-6">
+    <div class="text-center mb-12">
+      <p class="text-red-600 font-bold text-sm uppercase tracking-widest mb-3">Core Algorithms</p>
+      <h2 class="text-4xl font-black mb-4">How the Optimization Works</h2>
+    </div>
+    <div class="grid md:grid-cols-2 gap-8">
+      <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-8 card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
+            <i class="fas fa-chart-line text-white text-xl"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-xl text-blue-900">Linear Programming (LP)</h3>
+            <p class="text-xs text-blue-500 font-bold">PuLP / CBC Solver</p>
+          </div>
+        </div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-3">LP optimizes continuous logistics — maximizing priority score of allocated resources subject to transport weight constraints.</p>
+        <div class="bg-blue-900 text-green-300 rounded-xl p-3 font-mono text-xs">
+          Maximize Z = Σ (priority_i × multiplier × x_i)<br>
+          Subject to: Σ (weight_i × x_i) ≤ capacity_kg<br>
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0 ≤ x_i ≤ min(requested_i, stock_i)
+        </div>
+      </div>
+      <div class="bg-green-50 border-2 border-green-200 rounded-2xl p-8 card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-12 h-12 bg-green-600 rounded-xl flex items-center justify-center">
+            <i class="fas fa-boxes-stacked text-white text-xl"></i>
+          </div>
+          <div>
+            <h3 class="font-black text-xl text-green-900">Knapsack Algorithm</h3>
+            <p class="text-xs text-green-500 font-bold">Discrete Item Selection</p>
+          </div>
+        </div>
+        <p class="text-gray-700 text-sm leading-relaxed mb-3">Knapsack handles discrete resource selection — each item has a weight (kg) and a priority value. Best combination selected without exceeding capacity.</p>
+        <div class="bg-green-900 text-yellow-300 rounded-xl p-3 font-mono text-xs">
+          Knapsack Value = priority × category_multiplier<br>
+          Knapsack Weight = weight_kg per unit<br>
+          Capacity = vehicle max load (kg)
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSPORT -->
+<section class="py-20 bg-gray-100">
+  <div class="max-w-6xl mx-auto px-6 text-center">
+    <p class="text-red-600 font-bold text-sm uppercase tracking-widest mb-3">Multi-Modal Logistics</p>
+    <h2 class="text-4xl font-black mb-4">Aid Reaches Anywhere</h2>
+    <p class="text-gray-500 mb-12 max-w-2xl mx-auto">Roads flooded? Bridges collapsed? RescueOps coordinates the right vehicle for every terrain.</p>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-5">
+      <div class="bg-white border border-orange-200 rounded-2xl p-5 card"><div class="text-4xl mb-2">🚛</div><h3 class="font-black text-sm mb-1">Land Route</h3><p class="text-xs text-gray-500">Lorry, Van, Tractor, Ambulance, Bullock Cart</p></div>
+      <div class="bg-white border border-blue-200 rounded-2xl p-5 card"><div class="text-4xl mb-2">⛵</div><h3 class="font-black text-sm mb-1">Water Route</h3><p class="text-xs text-gray-500">Boat, Motorboat — for flooded zones</p></div>
+      <div class="bg-white border border-sky-200 rounded-2xl p-5 card"><div class="text-4xl mb-2">🚁</div><h3 class="font-black text-sm mb-1">Air Route</h3><p class="text-xs text-gray-500">Helicopter, Fixed-Wing — cut-off areas</p></div>
+      <div class="bg-white border border-purple-200 rounded-2xl p-5 card"><div class="text-4xl mb-2">🛸</div><h3 class="font-black text-sm mb-1">Drone / Manual</h3><p class="text-xs text-gray-500">Drones &amp; manual carry for last-mile</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="py-20 bg-gray-900 text-white">
+  <div class="max-w-6xl mx-auto px-6 text-center">
+    <h2 class="text-4xl font-black mb-16">4-Step Relief Process</h2>
+    <div class="grid md:grid-cols-4 gap-6">
+      <div class="bg-gray-800 p-7 rounded-2xl border border-gray-700">
+        <div class="text-3xl font-black text-red-500 mb-3">01</div>
+        <i class="fas fa-clipboard-list text-3xl text-red-400 mb-4"></i>
+        <h3 class="font-bold text-base mb-2">Submit Request</h3>
+        <p class="text-gray-400 text-sm">Detailed form with population, food type (Idli/Dosa), medicine, clothing by gender, transport preference</p>
+      </div>
+      <div class="bg-gray-800 p-7 rounded-2xl border border-gray-700">
+        <div class="text-3xl font-black text-red-500 mb-3">02</div>
+        <i class="fas fa-calculator text-3xl text-red-400 mb-4"></i>
+        <h3 class="font-bold text-base mb-2">Urgency Scored</h3>
+        <p class="text-gray-400 text-sm">Pregnant ×3.5, children ×2.5, elderly ×2.0, disaster type bonus. Shown as % for easy comparison.</p>
+      </div>
+      <div class="bg-gray-800 p-7 rounded-2xl border border-gray-700">
+        <div class="text-3xl font-black text-red-500 mb-3">03</div>
+        <i class="fas fa-microchip text-3xl text-red-400 mb-4"></i>
+        <h3 class="font-bold text-base mb-2">LP + Knapsack Runs</h3>
+        <p class="text-gray-400 text-sm">Maximize priority within vehicle capacity and live warehouse stock — both algorithms working together</p>
+      </div>
+      <div class="bg-gray-800 p-7 rounded-2xl border border-gray-700">
+        <div class="text-3xl font-black text-red-500 mb-3">04</div>
+        <i class="fas fa-truck-fast text-3xl text-red-400 mb-4"></i>
+        <h3 class="font-bold text-base mb-2">Live Tracking</h3>
+        <p class="text-gray-400 text-sm">Shelter receives live dispatch updates — departed, en route, arrived. Shortfall clearly reported. Auto-refreshes.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="bg-gray-950 text-gray-500 py-10">
+  <div class="max-w-6xl mx-auto px-6 text-center">
+    <div class="flex items-center justify-center gap-2 mb-4">
+      <i class="fas fa-shield-heart text-red-600 text-xl"></i>
+      <span class="font-black text-white text-lg">RESCUE<span class="text-red-500">OPS</span></span>
+    </div>
+    <p class="text-sm mb-2">
+      Optimized using <span class="text-yellow-400 font-bold">Linear Programming (LP)</span> &amp;
+      <span class="text-green-400 font-bold">Knapsack Algorithm</span>
+    </p>
+    <p class="text-sm text-gray-400 mb-1">
+      <i class="fas fa-envelope mr-2 text-red-400"></i>
+      Contact: <a href="mailto:rescueops.support@gmail.com" class="text-red-400 hover:text-red-300 font-bold transition">rescueops.support@gmail.com</a>
+    </p>
+    <p class="text-xs text-gray-600 mt-3">RescueOps &copy; 2026. All rights reserved.</p>
+  </div>
+</footer>
+</body>
+</html>

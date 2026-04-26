@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RescueOps — Register Shelter</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  .inp{width:100%;padding:11px 14px;border-radius:11px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:13px;outline:none;transition:all .2s;}
+  .inp:focus{border-color:#ef4444;background:white;box-shadow:0 0 0 3px rgba(239,68,68,.08);}
+  .lbl{display:block;font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-bottom:5px;}
+  .pw-wrap{position:relative;}
+  .pw-eye{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#94a3b8;cursor:pointer;}
+  .pw-eye:hover{color:#ef4444;}
+  #reg-map{height:280px;border-radius:14px;z-index:0;}
+  .sec-hdr{font-size:12px;font-weight:900;color:#374151;text-transform:uppercase;letter-spacing:.07em;
+    display:flex;align-items:center;gap:7px;padding:10px 0;border-bottom:2px solid #f1f5f9;margin-bottom:14px;}
+</style>
+</head>
+<body class="bg-slate-100 min-h-screen">
+<nav class="bg-white border-b border-gray-200 px-6 py-4">
+  <div class="max-w-5xl mx-auto flex justify-between items-center">
+    <a href="/" class="flex items-center gap-2">
+      <i class="fas fa-shield-heart text-red-600 text-xl"></i>
+      <span class="font-black text-lg">RESCUE<span class="text-red-600">OPS</span></span>
+    </a>
+    <a href="/shelter/login" class="text-sm text-gray-500 hover:text-red-600 font-bold">Already registered? Login →</a>
+  </div>
+</nav>
+
+<div class="max-w-5xl mx-auto px-4 py-8">
+  <div class="text-center mb-7">
+    <h1 class="text-3xl font-black text-gray-900 mb-2">Register Your Shelter Node</h1>
+    <p class="text-gray-500 text-sm">Fill all details. This creates your login account.</p>
+  </div>
+  <div id="reg-msg" class="hidden p-4 rounded-2xl font-semibold text-sm mb-5 text-center"></div>
+
+  <div class="bg-white rounded-3xl shadow-lg border border-gray-200 p-7">
+    <div class="grid md:grid-cols-2 gap-10">
+      <!-- LEFT -->
+      <div>
+        <div class="sec-hdr"><i class="fas fa-id-card text-red-600"></i>Shelter Identity</div>
+        <div class="space-y-4 mb-5">
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl">Shelter/Node Name *</label><input id="r_name" type="text" class="inp" placeholder="e.g. Govt. Relief Camp B"></div>
+            <div><label class="lbl">Username (Login ID) *</label><input id="r_user" type="text" class="inp" placeholder="e.g. camp_b_chennai"></div>
+          </div>
+          <div>
+            <label class="lbl">Node Category *</label>
+            <select id="r_cat" class="inp">
+              <optgroup label="🏥 Medical">
+                <option value="Hospital">Hospital / Government Hospital</option>
+                <option value="Field Clinic">Field Clinic / Medical Camp</option>
+                <option value="Maternity Center">Maternity &amp; Child Care Center</option>
+              </optgroup>
+              <optgroup label="🏕️ Relief Camps">
+                <option value="Shelter Camp">Shelter Camp / Relief Camp</option>
+                <option value="Community Hall">Community Hall / Panchayat Office</option>
+                <option value="School Shelter">School Used as Shelter</option>
+                <option value="Marriage Hall">Marriage Hall / Kalyana Mandapam</option>
+                <option value="Temple Shelter">Temple / Religious Building Shelter</option>
+                <option value="Stadium Shelter">Stadium / Sports Ground Shelter</option>
+                <option value="Govt Building">Government Building Shelter</option>
+              </optgroup>
+              <optgroup label="👶 Vulnerable Groups">
+                <option value="Orphanage">Orphanage / Children Home</option>
+                <option value="Old Age Home">Old Age Home</option>
+                <option value="Disability Center">Disability / Special Needs Center</option>
+              </optgroup>
+              <optgroup label="🚨 Emergency Services">
+                <option value="Rescue Team">Rescue Team Base (NDRF/SDRF)</option>
+                <option value="NDRF Camp">NDRF Operational Camp</option>
+                <option value="Police Camp">Police / Law Enforcement Camp</option>
+                <option value="Army Camp">Army / Defence Forces Camp</option>
+                <option value="Fire Station">Fire Station</option>
+                <option value="Coast Guard">Coast Guard Post</option>
+              </optgroup>
+              <optgroup label="📦 Logistics">
+                <option value="Distribution Center">Resource Distribution Center</option>
+                <option value="Warehouse">Warehouse / Storage Node</option>
+              </optgroup>
+              <option value="General">General Community Node</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sec-hdr"><i class="fas fa-map-pin text-red-600"></i>Location (India)</div>
+        <div class="space-y-3 mb-5">
+          <div>
+            <label class="lbl">State *</label>
+            <select id="r_state" class="inp" onchange="loadDistricts()">
+              <option value="">-- Select State --</option>
+              {% for state in states %}
+              <option value="{{ state }}">{{ state }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="lbl">District *</label>
+            <select id="r_district" class="inp" onchange="updateLocationText()">
+              <option value="">-- Select District --</option>
+            </select>
+          </div>
+          <div>
+            <label class="lbl">Village / Town / Area</label>
+            <input id="r_village" type="text" class="inp" placeholder="e.g. Anna Nagar, Perambur, Pallikaranai">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div><label class="lbl">Max Capacity (People)</label><input id="r_cap" type="number" class="inp" placeholder="e.g. 300" min="0"></div>
+            <div><label class="lbl">Phone Number *</label><input id="r_phone" type="tel" class="inp" placeholder="9876543210"></div>
+          </div>
+          <div><label class="lbl">Email</label><input id="r_email" type="email" class="inp" placeholder="shelter@email.com"></div>
+        </div>
+
+        <div class="sec-hdr"><i class="fas fa-lock text-red-600"></i>Login Security</div>
+        <div class="space-y-3">
+          <div>
+            <label class="lbl">Password * (min 6 characters)</label>
+            <div class="pw-wrap">
+              <input id="r_pass" type="password" class="inp" placeholder="Create a strong password" style="padding-right:40px">
+              <i class="fas fa-eye pw-eye" id="e1" onclick="togglePw('r_pass','e1')"></i>
+            </div>
+          </div>
+          <div>
+            <label class="lbl">Confirm Password *</label>
+            <div class="pw-wrap">
+              <input id="r_pass2" type="password" class="inp" placeholder="Re-enter password" style="padding-right:40px">
+              <i class="fas fa-eye pw-eye" id="e2" onclick="togglePw('r_pass2','e2')"></i>
+            </div>
+          </div>
+          <div>
+            <label class="lbl">Security Question (for password recovery)</label>
+            <select id="r_secq" class="inp">
+              <option value="What is the name of your shelter?">What is the name of your shelter?</option>
+              <option value="What is your district name?">What is your district name?</option>
+              <option value="What is the name of your supervisor?">What is the name of your supervisor?</option>
+              <option value="What is your organization code?">What is your organization code?</option>
+            </select>
+          </div>
+          <div><label class="lbl">Security Answer *</label><input id="r_seca" type="text" class="inp" placeholder="Your answer (case-insensitive)"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: MAP -->
+      <div>
+        <div class="sec-hdr"><i class="fas fa-map-location-dot text-red-600"></i>GPS Location</div>
+        <div class="mb-3">
+          <label class="lbl">Coordinates</label>
+          <div class="flex gap-2">
+            <input id="r_loc" type="text" class="inp" placeholder="Auto-filled when you pick on map or use GPS" readonly>
+            <button type="button" onclick="fetchGPS()" id="gps_btn"
+                    class="flex-shrink-0 bg-blue-600 hover:bg-blue-700 text-white px-4 rounded-xl text-sm font-bold transition">
+              <i class="fas fa-location-crosshairs"></i>
+            </button>
+          </div>
+          <p class="text-xs text-gray-400 mt-1">Click map to pin your exact location</p>
+        </div>
+        <div id="reg-map" class="mb-4"></div>
+        <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 mb-5">
+          <i class="fas fa-info-circle mr-1"></i>Accurate GPS helps admin plan efficient transport routes to your shelter.
+        </div>
+        <button onclick="handleRegister()" id="reg-btn"
+                class="w-full bg-red-600 hover:bg-red-700 text-white font-black text-base py-4 rounded-2xl transition shadow-lg">
+          <i class="fas fa-plus-circle mr-2"></i>Register Shelter Node
+        </button>
+        <p class="text-center text-xs text-gray-400 mt-4">
+          Already registered? <a href="/shelter/login" class="text-red-600 font-bold">Login here →</a>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const LOCATIONS = {{ locations_json|safe }};
+let map, marker;
+
+window.addEventListener('load', () => {
+  map = L.map('reg-map').setView([20.5937, 78.9629], 4);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
+  map.on('click', e => setMarker(e.latlng.lat, e.latlng.lng));
+});
+
+function setMarker(lat, lng) {
+  document.getElementById('r_loc').value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+  if (marker) marker.setLatLng([lat,lng]); else marker = L.marker([lat,lng]).addTo(map);
+  map.panTo([lat,lng]);
+}
+
+function fetchGPS() {
+  const btn = document.getElementById('gps_btn');
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+  navigator.geolocation.getCurrentPosition(
+    p => { setMarker(p.coords.latitude, p.coords.longitude); map.setZoom(14);
+           btn.innerHTML = '<i class="fas fa-check text-green-300"></i>'; },
+    () => { alert('GPS blocked. Click the map manually.'); btn.innerHTML = '<i class="fas fa-location-crosshairs"></i>'; }
+  );
+}
+
+function loadDistricts() {
+  const state = document.getElementById('r_state').value;
+  const sel = document.getElementById('r_district');
+  sel.innerHTML = '<option value="">-- Select District --</option>';
+  if (!state || !LOCATIONS[state]) return;
+  LOCATIONS[state].forEach(d => {
+    const opt = document.createElement('option');
+    opt.value = d; opt.textContent = d;
+    sel.appendChild(opt);
+  });
+  updateLocationText();
+}
+
+function updateLocationText() {
+  const state = document.getElementById('r_state').value;
+  const dist  = document.getElementById('r_district').value;
+  // Auto-center map on district
+  if (state && dist) {
+    // Try to search a rough center (just show user something moved)
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(dist+', '+state+', India')}&format=json&limit=1`)
+      .then(r=>r.json()).then(data=>{
+        if(data&&data[0]){const lat=parseFloat(data[0].lat),lng=parseFloat(data[0].lon);
+          map.setView([lat,lng],11);}
+      }).catch(()=>{});
+  }
+}
+
+function togglePw(id, eid) {
+  const inp = document.getElementById(id);
+  const ico = document.getElementById(eid);
+  if(inp.type==='password'){inp.type='text';ico.classList.replace('fa-eye','fa-eye-slash');}
+  else{inp.type='password';ico.classList.replace('fa-eye-slash','fa-eye');}
+}
+
+function showMsg(msg,ok){
+  const el=document.getElementById('reg-msg');
+  el.textContent=msg;
+  el.className=`p-4 rounded-2xl font-semibold text-sm mb-5 text-center ${ok?'bg-green-50 text-green-800 border border-green-200':'bg-red-50 text-red-800 border border-red-200'}`;
+  el.classList.remove('hidden');
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+}
+
+async function handleRegister() {
+  const name=document.getElementById('r_name').value.trim();
+  const user=document.getElementById('r_user').value.trim();
+  const pass=document.getElementById('r_pass').value;
+  const pass2=document.getElementById('r_pass2').value;
+  const state=document.getElementById('r_state').value;
+  const district=document.getElementById('r_district').value;
+  const seca=document.getElementById('r_seca').value.trim();
+  if(!name||!user||!pass||!state||!district||!seca){showMsg('⚠️ Please fill all required (*) fields.',false);return;}
+  if(pass.length<6){showMsg('⚠️ Password must be at least 6 characters.',false);return;}
+  if(pass!==pass2){showMsg('⚠️ Passwords do not match.',false);return;}
+  const btn=document.getElementById('reg-btn');
+  btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Registering...';btn.disabled=true;
+  const res=await fetch('/api/shelter/register',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      name,username:user,password:pass,
+      category:document.getElementById('r_cat').value,
+      email:document.getElementById('r_email').value,
+      phone:document.getElementById('r_phone').value,
+      location:document.getElementById('r_loc').value,
+      state,district,
+      village:document.getElementById('r_village').value,
+      capacity:document.getElementById('r_cap').value||0,
+      security_question:document.getElementById('r_secq').value,
+      security_answer:seca.toLowerCase()
+    })});
+  const data=await res.json();
+  btn.innerHTML='<i class="fas fa-plus-circle mr-2"></i>Register Shelter Node';btn.disabled=false;
+  if(data.status==='success'){showMsg('✅ Registration successful! Redirecting to login...',true);setTimeout(()=>window.location.href='/shelter/login',2000);}
+  else showMsg('❌ '+data.message,false);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RescueOps — Admin Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+  body{background:linear-gradient(135deg,#0f172a 0%,#1e1b4b 50%,#0f172a 100%);min-height:100vh;}
+  .glass{background:rgba(255,255,255,0.05);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,0.1);}
+  .input-field{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid #334155;
+    background:#0f172a;color:white;font-size:14px;outline:none;transition:all .2s;}
+  .input-field:focus{border-color:#ef4444;background:#1e293b;}
+  .input-field::placeholder{color:#64748b;}
+  .btn-primary{width:100%;background:linear-gradient(135deg,#dc2626,#991b1b);color:white;
+    font-weight:900;padding:14px;border-radius:12px;font-size:16px;transition:all .2s;
+    border:none;cursor:pointer;}
+  .btn-primary:hover{background:linear-gradient(135deg,#b91c1c,#7f1d1d);transform:translateY(-1px);
+    box-shadow:0 10px 25px rgba(220,38,38,0.35);}
+  .label{display:block;font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;
+    letter-spacing:.1em;margin-bottom:8px;}
+  .err{background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.4);
+    color:#fca5a5;padding:12px;border-radius:10px;font-size:13px;display:none;margin-bottom:16px;}
+  .pw-wrap{position:relative;}
+  .pw-eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    color:#64748b;cursor:pointer;transition:color .2s;}
+  .pw-eye:hover{color:#ef4444;}
+</style>
+</head>
+<body class="flex items-center justify-center px-4 py-10">
+
+<div class="w-full max-w-md">
+  <!-- BACK -->
+  <a href="/" class="inline-flex items-center gap-2 text-slate-400 hover:text-white text-sm mb-8 transition">
+    <i class="fas fa-arrow-left"></i> Back to Home
+  </a>
+
+  <div class="glass rounded-3xl p-8">
+    <!-- LOGO -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-red-600/20 rounded-2xl mb-4">
+        <i class="fas fa-user-shield text-red-500 text-3xl"></i>
+      </div>
+      <h1 class="text-2xl font-black text-white">Admin Command Center</h1>
+      <p class="text-slate-400 text-sm mt-1">Enter admin credentials to access the dashboard</p>
+    </div>
+
+    <div id="err-box" class="err"></div>
+
+    <!-- USERNAME -->
+    <div class="mb-4">
+      <label class="label">Admin Username</label>
+      <input id="username" type="text" class="input-field" placeholder="e.g. admin"
+             onkeydown="if(event.key==='Enter')document.getElementById('password').focus()">
+    </div>
+
+    <!-- PASSWORD with show/hide -->
+    <div class="mb-2">
+      <label class="label">Password</label>
+      <div class="pw-wrap">
+        <input id="password" type="password" class="input-field" placeholder="Enter your password"
+               style="padding-right:44px"
+               onkeydown="if(event.key==='Enter')doLogin()">
+        <i class="fas fa-eye pw-eye" id="eye-icon" onclick="togglePw()"></i>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD -->
+    <div class="text-right mb-6">
+      <a href="/forgot_password?role=admin" class="text-xs text-red-400 hover:text-red-300 font-bold transition">
+        <i class="fas fa-key mr-1"></i>Forgot Password?
+      </a>
+    </div>
+
+    <button onclick="doLogin()" id="login-btn" class="btn-primary">
+      <i class="fas fa-terminal mr-2"></i>Access Dashboard
+    </button>
+
+    <p class="text-center text-slate-500 text-xs mt-6">
+      Are you a shelter node?
+      <a href="/shelter/login" class="text-red-400 hover:text-red-300 font-bold">Login here →</a>
+    </p>
+  </div>
+
+  <!-- CREDENTIALS HINT (for college demo) -->
+  <div class="mt-4 glass rounded-2xl p-4 text-center">
+    <p class="text-slate-400 text-xs font-bold">Default Admin Credentials</p>
+    <p class="text-slate-300 text-xs mt-1">Username: <code class="text-green-400">admin</code> &nbsp;|&nbsp; Password: <code class="text-green-400">admin123</code></p>
+  </div>
+</div>
+
+<script>
+function togglePw() {
+  const inp = document.getElementById('password');
+  const ico = document.getElementById('eye-icon');
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    ico.classList.replace('fa-eye','fa-eye-slash');
+  } else {
+    inp.type = 'password';
+    ico.classList.replace('fa-eye-slash','fa-eye');
+  }
+}
+
+async function doLogin() {
+  const u = document.getElementById('username').value.trim();
+  const p = document.getElementById('password').value;
+  const err = document.getElementById('err-box');
+  const btn = document.getElementById('login-btn');
+  err.style.display = 'none';
+  if (!u || !p) { err.textContent = '⚠️ Please fill in both fields.'; err.style.display='block'; return; }
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Authenticating...';
+  btn.disabled = true;
+  const res = await fetch('/api/admin/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ username: u, password: p })
+  });
+  const data = await res.json();
+  btn.innerHTML = '<i class="fas fa-terminal mr-2"></i>Access Dashboard';
+  btn.disabled = false;
+  if (data.status === 'success') {
+    btn.innerHTML = '<i class="fas fa-check mr-2"></i>Redirecting...';
+    window.location.href = data.redirect;
+  } else {
+    err.textContent = '❌ ' + data.message;
+    err.style.display = 'block';
+  }
+}
+</script>
+</body>
+</html>
